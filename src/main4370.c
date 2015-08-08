@@ -8,9 +8,8 @@
 ===============================================================================
 */
 
-#ifdef __USE_CMSIS
-#include "LPC43xx.h"
-#endif
+// ここにペリフェラルを定義したヘッダをインクルード(CMSIS_LPC43xx_DriverLib)
+#include <lpc43xx.h>
 
 #include <cr_section_macros.h>
 
