@@ -40,7 +40,7 @@ void systick_delay(uint32_t delayTicks) {
 
 
 int main(void) {
-
+	printf("test\n");
 	// Setup SysTick Timer to interrupt at 1 msec intervals
 	SysTick_Config(CGU_GetPCLKFrequency(CGU_PERIPHERAL_M4CORE)/1000);
 
@@ -51,7 +51,6 @@ int main(void) {
     volatile static int i = 0 ;
     // Enter an infinite loop, just incrementing a counter
     while(1) {
-
 		systick_delay(500);
 		GPIO_SetValue(0,1<<8);
 		systick_delay(1000);
