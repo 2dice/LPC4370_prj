@@ -54,7 +54,7 @@ typedef struct {                            /*!< (@ 0x400F0000) VADC Structure  
 
 #define VADC_DMA_WRITE  7
 #define VADC_DMA_READ   8
-#define VADC_DMA_READ_SRC  (LPC_VADC_BASE + 512)  /* VADC FIFO */
+#define VADC_DMA_READ_SRC  (LPC_VADC_BASE + 512)  /* VADC FIFO_OUTPUT0 0x400F 0200 */
 
 #define RGU_SIG_VADC 60
 
@@ -175,13 +175,14 @@ void setup_pll0audio(uint32_t msel, uint32_t nsel, uint32_t psel)
 
 ////////////////////////////////ADCコントロール////////////////////////////
 #define CAPTUREBUFFER_SIZE	0x10000
-#define CAPTUREBUFFER1		((uint8_t*)0x20008000)
+#define CAPTUREBUFFER0		((uint8_t*)0x20000000)//16kB AHB SRAMx2
+#define CAPTUREBUFFER1		((uint8_t*)0x20008000)//16kB AHB SRAMx2
 #define CAPTUREBUFFER_SIZEHALF	0x8000
-#define ADCCLK_MATCHVALUE	(4 - 1)  // 39.936MHz / 4 = 9.984MHz
+#define ADCCLK_MATCHVALUE	(4 - 1)  // サンプリング周期 = PLL0AUDIO / 4
 #define ADCCLK_DGECI 0
 #define FIFO_SIZE       8
-#define DMA_LLI_NUM    16
-static GPDMA_LLI_Type DMA_LTable[DMA_LLI_NUM];
+#define DMA_LLI_NUM    16//リンクリストの個数．最低４個くらい必要
+static GPDMA_LLI_Type DMA_LTable[DMA_LLI_NUM];//リンクリストの個数分，設定用構造体を定義
 volatile int32_t capture_count;
 void VADC_SetupDMA(void)
 {
@@ -190,21 +191,22 @@ void VADC_SetupDMA(void)
   uint32_t blocksize;
   uint8_t *buffer;
 
+  //DMA割り込みディスエーブル
   NVIC_DisableIRQ(DMA_IRQn);
+  //DMAch0ディスエーブル
   LPC_GPDMA->C0CONFIG = 0;
 
   /* clear all interrupts on channel 0 */
-  LPC_GPDMA->INTTCCLEAR = 0x01;
-  LPC_GPDMA->INTERRCLR = 0x01;
+  LPC_GPDMA->INTTCCLEAR = 0x01;//ターミナルカウントリクエストクリア
+  LPC_GPDMA->INTERRCLR = 0x01;//割り込みエラークリア
 
   /* Setup the DMAMUX */
-  LPC_CREG->DMAMUX &= ~(0x3<<(VADC_DMA_WRITE*2));
+  LPC_CREG->DMAMUX &= ~(0x3<<(VADC_DMA_WRITE*2));//DMAペリフェラル7をADCHS書き込みに接続(一回クリアして書き直し)
   LPC_CREG->DMAMUX |= 0x3<<(VADC_DMA_WRITE*2);  /* peripheral 7 vADC Write(0x3) */
-  LPC_CREG->DMAMUX &= ~(0x3<<(VADC_DMA_READ*2));
+  LPC_CREG->DMAMUX &= ~(0x3<<(VADC_DMA_READ*2));//DMAペリフェラル8をADCHS読み込みに接続(一回クリアして書き直し)
   LPC_CREG->DMAMUX |= 0x3<<(VADC_DMA_READ*2);  /* peripheral 8 vADC read(0x3) */
 
   LPC_GPDMA->CONFIG = 0x01;  /* Enable DMA channels, little endian */
-  while ( !(LPC_GPDMA->CONFIG & 0x01) );
 
   // The size of the transfer is in multiples of 32bit copies (hence the /4)
   // and must be even multiples of FIFO_SIZE.
@@ -212,13 +214,14 @@ void VADC_SetupDMA(void)
   blocksize = CAPTUREBUFFER_SIZE / DMA_LLI_NUM;
   transfersize = blocksize / 4;
 
+  //分割されたバッファごとに転送．
   for (i = 0; i < DMA_LLI_NUM; i++)
   {
-	if (i == DMA_LLI_NUM / 2)
+	if (i == DMA_LLI_NUM / 2)//リンクリストの半分まで来たらBUFFER0からBUFFER1にSRAMアドレスを切り替える
 		buffer = CAPTUREBUFFER1;
 	DMA_LTable[i].SrcAddr = VADC_DMA_READ_SRC;
 	DMA_LTable[i].DstAddr = (uint32_t)buffer;
-	DMA_LTable[i].NextLLI = (uint32_t)(&DMA_LTable[(i+1) % DMA_LLI_NUM]);
+	DMA_LTable[i].NextLLI = (uint32_t)(&DMA_LTable[(i+1) % DMA_LLI_NUM]);//次ブロックのポインタを指定(環状リンクリスト)
 	DMA_LTable[i].Control = (transfersize << 0) |      // Transfersize (does not matter when flow control is handled by peripheral)
                            (0x2 << 12)  |          // Source Burst Size
                            (0x2 << 15)  |          // Destination Burst Size
@@ -235,9 +238,11 @@ void VADC_SetupDMA(void)
 
   // Let the last LLI in the chain cause a terminal count interrupt to
   // notify when the capture buffer is completely filled
+  //リンクリストの真ん中(BUFFER0満杯)と最後(BUFFFER1満杯)で計２回割り込み(要データ退避)するよう設定．
   DMA_LTable[DMA_LLI_NUM/2 - 1].Control |= (0x1UL << 31); // Terminal count interrupt enabled
   DMA_LTable[DMA_LLI_NUM - 1].Control |= (0x1UL << 31); // Terminal count interrupt enabled
 
+  //上で構造体で定義した最初のリンクリストの設定をレジスタに入れ込み
   LPC_GPDMA->C0SRCADDR = DMA_LTable[0].SrcAddr;
   LPC_GPDMA->C0DESTADDR = DMA_LTable[0].DstAddr;
   LPC_GPDMA->C0CONTROL = DMA_LTable[0].Control;
@@ -249,7 +254,7 @@ void VADC_SetupDMA(void)
 //                          (0x6 << 11)  |          // Flow control - peripheral to memory - peripheral control
                           (0x1 << 14)  |          // Int error mask
                           (0x1 << 15);            // ITC - term count error mask
-
+  //DMA割り込みイネーブル
   NVIC_EnableIRQ(DMA_IRQn);
 }
 

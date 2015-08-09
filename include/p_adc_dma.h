@@ -4,8 +4,6 @@
 #include <lpc43xx.h>
 
 
-#define CAPTUREBUFFER0		((uint8_t*)0x20000000)
-
 void setup_pll0audio(uint32_t, uint32_t, uint32_t);
 void VADC_Init(void);
 void VADC_SetupDMA(void);

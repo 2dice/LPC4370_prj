@@ -5,6 +5,7 @@
  *      Author: 2dice
  */
 
+#include "pi.h"
 #include "p_adc_dma.h"
 
 
