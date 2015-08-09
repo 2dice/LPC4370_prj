@@ -81,10 +81,9 @@ typedef struct {                            /*!< (@ 0x400F0000) VADC Structure  
 #define PLL0_MSEL_MAX (1<<15)
 #define PLL0_NSEL_MAX (1<<8)
 #define PLL0_PSEL_MAX (1<<5)
-
 static uint32_t FindMDEC(uint32_t msel)
 {
-	//mselは1~131071の範囲であること
+	//データシートのサンプルコードそのまま
   /* multiplier: compute mdec from msel */
   uint32_t x = 0x4000;
   uint32_t im;
@@ -108,7 +107,6 @@ static uint32_t FindMDEC(uint32_t msel)
 
 static uint32_t FindNDEC(uint32_t nsel)
 {
-	//nselは1~256の範囲であること
   /* pre-divider: compute ndec from nsel */
   uint32_t x = 0x80;
   uint32_t in;
@@ -132,7 +130,6 @@ static uint32_t FindNDEC(uint32_t nsel)
 
 static uint32_t FindPDEC(uint32_t psel)
 {
-	//pselは1~32の範囲であること
   /* post-divider: compute pdec from psel */
   uint32_t x = 0x10;
   uint32_t ip;
@@ -159,39 +156,21 @@ void setup_pll0audio(uint32_t msel, uint32_t nsel, uint32_t psel)
 {
   uint32_t ClkSrc;
 
-  //CGU_EnableEntity(CGU_BASE_PERIPH, DISABLE);
-  CGU_EnableEntity(CGU_BASE_VADC, DISABLE);
-
-  /* source = XTAL OSC 12 MHz */
+  /* source = XTAL OSC 12 MHz, enumで6が入ってる*/
   ClkSrc = CGU_CLKSRC_XTAL_OSC;
-
-  /* disable clock, disable skew enable, power down pll,
-  * (dis/en)able post divider, (dis/en)able pre-divider,
-  * disable free running mode, disable bandsel,
-  * enable up limmiter, disable bypass
-  */
-  LPC_CGU->PLL0AUDIO_CTRL = (ClkSrc << 24) | _BIT(0);  /* power down */
-
-  /* set NDEC, PDEC and MDEC register */
+  /* crystal oscillator power down */
+  LPC_CGU->PLL0AUDIO_CTRL = (ClkSrc << 24) | _BIT(0);
+  /* set NDEC, PDEC register */
   LPC_CGU->PLL0AUDIO_NP_DIV = (FindNDEC(nsel)<<12) | (FindPDEC(psel) << 0);
+  /* set MDEC register */
   LPC_CGU->PLL0AUDIO_MDIV = FindMDEC(msel);
-
+  //MDECを有効にし，シグマデルタモジュールをOFFにして水晶をPLLに接続
   LPC_CGU->PLL0AUDIO_CTRL = (ClkSrc << 24) | (6<< 12);     // fractional divider off and bypassed
-
-  /* wait for lock */
-  //while (!(LPC_CGU->PLL0AUDIO_STAT & 1));
-
-  /* enable clock output */
+  /* enable PLL0 clock output */
   LPC_CGU->PLL0AUDIO_CTRL |= (1<<4); /* CLKEN */
 
   CGU_ClockSourceFrequency[CGU_CLKSRC_PLL0_AUDIO] =
     msel * (CGU_ClockSourceFrequency[ClkSrc] / (psel * nsel));
-
-  //CGU_UpdateClock();
-
-  // Re-enable the clocks that uses PLL0AUDIO
-  //CGU_EnableEntity(CGU_BASE_PERIPH, ENABLE);
-  CGU_EnableEntity(CGU_BASE_VADC, ENABLE);
 }
 
 ////////////////////////////////ADCコントロール////////////////////////////
