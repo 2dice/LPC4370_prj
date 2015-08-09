@@ -21,7 +21,7 @@
 #include <stdio.h>
 
 // 独自定義したヘッダをインクルード
-#include "p_adc_dma.h"
+#include "pi.h"
 
 /*! Frequency of external xtal */
 #define XTAL_FREQ  (12000000UL)
@@ -83,11 +83,9 @@ void systick_delay(uint32_t delayTicks) {
 
 int main(void) {
     setup_systemclock();
-    set_ADC_DMA_clk();
+    ADC_DMA_Init();
     NVIC_SetPriority(DMA_IRQn,   ((0x01<<3)|0x01));
-	VADC_Init();
-    VADC_SetupDMA();
-	VADC_Start();
+
 
 	// Setup SysTick Timer to interrupt at 10 msec intervals
 	SysTick_Config(CGU_GetPCLKFrequency(CGU_PERIPHERAL_M4CORE)/100);
@@ -107,7 +105,7 @@ int main(void) {
 
         i++ ;
     }
-	VADC_Stop();
+	ADC_DMA_Exit();
     return 0 ;
 }
 

@@ -6,10 +6,6 @@
 #include "p_adc_dma.h"
 
 ////////////////////////////////DMA-CLK設定////////////////////////////
-// PLL0AUDIO: 37.5kHz = (12MHz / 256) * (4 * 2) / (5 * 2)
-#define PLL0_MSEL	4
-#define PLL0_NSEL	256
-#define PLL0_PSEL	5
 #define PLL0_MSEL_MAX (1<<15)
 #define PLL0_NSEL_MAX (1<<8)
 #define PLL0_PSEL_MAX (1<<5)
@@ -87,7 +83,7 @@ static uint32_t FindPDEC(uint32_t psel)
 }
 
 extern uint32_t CGU_ClockSourceFrequency[CGU_CLKSRC_NUM];
-static void setup_pll0audio(uint32_t msel, uint32_t nsel, uint32_t psel)
+void setup_pll0audio(uint32_t msel, uint32_t nsel, uint32_t psel)
 {
   uint32_t ClkSrc;
 
@@ -124,11 +120,6 @@ static void setup_pll0audio(uint32_t msel, uint32_t nsel, uint32_t psel)
   // Re-enable the clocks that uses PLL0AUDIO
   //CGU_EnableEntity(CGU_BASE_PERIPH, ENABLE);
   CGU_EnableEntity(CGU_BASE_VADC, ENABLE);
-}
-
-void set_ADC_DMA_clk()
-{
-	setup_pll0audio(PLL0_MSEL, PLL0_NSEL, PLL0_PSEL);
 }
 
 ////////////////////////////////ADCコントロール////////////////////////////

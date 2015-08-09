@@ -1,6 +1,8 @@
 #ifndef __P_ADC_DMA_H__
 #define __P_ADC_DMA_H__
 
+#include <lpc43xx.h>
+
 /**
   * @brief Product name title=UM????? Chapter title=?????? Modification date=12/11/2012 Major revision=? Minor revision=?  (VADC)
     0x400F0000
@@ -76,7 +78,7 @@ typedef struct {                            /*!< (@ 0x400F0000) VADC Structure  
 
 #define CAPTUREBUFFER0		((uint8_t*)0x20000000)
 
-void set_ADC_DMA_clk(void);
+void setup_pll0audio(uint32_t, uint32_t, uint32_t);
 void VADC_Init(void);
 void VADC_SetupDMA(void);
 void VADC_Start(void);
