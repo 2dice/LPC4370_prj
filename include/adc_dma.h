@@ -73,7 +73,14 @@ typedef struct {                            /*!< (@ 0x400F0000) VADC Structure  
 
 #define STATUS1_CLEAR_MASK          0x1fffffff
 
+
+#define CAPTUREBUFFER0		((uint8_t*)0x20000000)
+
 void set_ADC_DMA_clk(void);
+void VADC_Init(void);
+void VADC_SetupDMA(void);
+void VADC_Start(void);
+void VADC_Stop(void);
 
 
 #endif
