@@ -63,9 +63,8 @@ void setup_systemclock()
 }
 
 volatile uint32_t msTicks; // counter for 10ms SysTicks
-volatile uint32_t *ADC;
 
-// ****************
+// ****************TODO:割り込みに切り出し
 //  SysTick_Handler - just increment SysTick counter
 void SysTick_Handler(void) {
 	msTicks++;
@@ -81,12 +80,13 @@ void systick_delay(uint32_t delayTicks) {
 	while ((msTicks - currentTicks) < delayTicks);
 }
 
+volatile uint32_t *ADC;
 int main(void) {
     setup_systemclock();
     ADC_DMA_Init();
     NVIC_SetPriority(DMA_IRQn,   ((0x01<<3)|0x01));
 
-
+    //TODO:TimerInitに切り出し
 	// Setup SysTick Timer to interrupt at 10 msec intervals
 	SysTick_Config(CGU_GetPCLKFrequency(CGU_PERIPHERAL_M4CORE)/100);
 
@@ -109,6 +109,7 @@ int main(void) {
     return 0 ;
 }
 
+//TODO:割り込みに切り出し
 __RAMFUNC(RAM)
 void DMA_IRQHandler (void)
 {
