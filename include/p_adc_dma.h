@@ -1,5 +1,5 @@
-#ifndef __ADC_DMA_H__
-#define __ADC_DMA_H__
+#ifndef __P_ADC_DMA_H__
+#define __P_ADC_DMA_H__
 
 /**
   * @brief Product name title=UM????? Chapter title=?????? Modification date=12/11/2012 Major revision=? Minor revision=?  (VADC)

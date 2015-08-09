@@ -21,7 +21,7 @@
 #include <stdio.h>
 
 // 独自定義したヘッダをインクルード
-#include "adc_dma.h"
+#include "p_adc_dma.h"
 
 /*! Frequency of external xtal */
 #define XTAL_FREQ  (12000000UL)

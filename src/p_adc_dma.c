@@ -3,7 +3,7 @@
 #include <lpc43xx_rgu.h>
 #include <lpc43xx_gpdma.h>
 
-#include "adc_dma.h"
+#include "p_adc_dma.h"
 
 ////////////////////////////////DMA-CLK設定////////////////////////////
 // PLL0AUDIO: 37.5kHz = (12MHz / 256) * (4 * 2) / (5 * 2)
