@@ -13,8 +13,6 @@
 #include <lpc43xx_gpio.h>
 #include <lpc43xx_cgu.h>
 #include <lpc43xx_emc.h>
-#include <lpc43xx_rgu.h>
-#include <lpc43xx_gpdma.h>
 
 #include <cr_section_macros.h>
 
