@@ -20,6 +20,7 @@
 
 // 独自定義したヘッダをインクルード
 #include "pi.h"
+#include "wave_gen.h"
 
 /*! Frequency of external xtal */
 #define XTAL_FREQ  (12000000UL)
@@ -81,8 +82,17 @@ void systick_delay(uint32_t delayTicks) {
 volatile uint32_t *ADC;
 int main(void) {
     setup_systemclock();
-    ADC_DMA_Init();
-    NVIC_SetPriority(DMA_IRQn,   ((0x01<<3)|0x01));
+
+    gen_dac_cfg_t cfg;
+    cfg.amplitude=2500;
+    cfg.dcOffset=0;
+    cfg.frequency=1500;
+    cfg.waveform=GEN_DAC_CFG_WAVE_SINUS;
+    dac_buffer_t buf;
+    wave_gen(&cfg, &buf);
+
+//    ADC_DMA_Init();
+//    NVIC_SetPriority(DMA_IRQn,   ((0x01<<3)|0x01));
 
     //TODO:TimerInitに切り出し
 	// Setup SysTick Timer to interrupt at 10 msec intervals
@@ -91,10 +101,14 @@ int main(void) {
 	GPIO_SetDir(0,1<<8, 1);	// GPIO0[8]を出力に設定
 	GPIO_ClearValue(0,1<<8);// GPIO0[8]出力L
 
+	int i;
     // Enter an infinite loop
     while(1) {
-    	//printf("%d\n",*ADC & 0x0000FFFF);//printf表示テスト用.処理が遅すぎて割り込みが不安定になる
-    	systick_delay(10);
+    	for (i=0; i < buf.numLUTEntries; i++)
+    	{
+    		printf("%d\n",buf.LUT_BUFFER[i]);//printf表示テスト用.処理が遅すぎて割り込みが不安定になる
+        	systick_delay(100);
+    	}
     }
 	ADC_DMA_Exit();
     return 0 ;
