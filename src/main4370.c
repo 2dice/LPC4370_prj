@@ -91,23 +91,17 @@ int main(void) {
 	GPIO_SetDir(0,1<<8, 1);	// GPIO0[8]を出力に設定
 	GPIO_ClearValue(0,1<<8);// GPIO0[8]出力L
 
-    // Force the counter to be placed into memory
-    volatile static int i = 0 ;
-    // Enter an infinite loop, just incrementing a counter
+    // Enter an infinite loop
     while(1) {
-    	printf("t%x\n",*ADC);//printf表示テスト用
-		systick_delay(50);
-		GPIO_SetValue(0,1<<8);// GPIO0[8]出力H
-		systick_delay(100);
-		GPIO_ClearValue(0,1<<8);// GPIO0[8]出力L
-
-        i++ ;
+    	//printf("%d\n",*ADC & 0x0000FFFF);//printf表示テスト用.処理が遅すぎて割り込みが不安定になる
+    	systick_delay(10);
     }
 	ADC_DMA_Exit();
     return 0 ;
 }
 
-//TODO:割り込みに切り出し
+//TODO:割り込みに切り出し,capture countが必要(buffer0/1から吸い出すとき)
+extern uint32_t capture_count;
 __RAMFUNC(RAM)
 void DMA_IRQHandler (void)
 {
@@ -120,5 +114,13 @@ void DMA_IRQHandler (void)
 	LPC_GPDMA->INTTCCLEAR = 1;
   }
 
+  if (capture_count == 0)
+  {
+	  GPIO_SetValue(0,1<<8);// GPIO0[8]出力H
+	  capture_count ++;
+  }else{
+	  GPIO_ClearValue(0,1<<8);// GPIO0[8]出力L
+	  capture_count = 0;
+  }
   ADC = (uint32_t*)CAPTUREBUFFER0;
 }

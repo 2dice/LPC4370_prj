@@ -174,11 +174,11 @@ void setup_pll0audio(uint32_t msel, uint32_t nsel, uint32_t psel)
 }
 
 ////////////////////////////////ADCコントロール////////////////////////////
-#define CAPTUREBUFFER_SIZE	0x10000
+#define CAPTUREBUFFER_SIZE	0x2000 //0x10000(64kB)から0x2000(8kB=4kBx2)に変更
 #define CAPTUREBUFFER0		((uint8_t*)0x20000000)//16kB AHB SRAMx2
 #define CAPTUREBUFFER1		((uint8_t*)0x20008000)//16kB AHB SRAMx2
 #define CAPTUREBUFFER_SIZEHALF	0x8000
-#define ADCCLK_MATCHVALUE	(4 - 1)  // サンプリング周期 = PLL0AUDIO / 4
+#define ADCCLK_MATCHVALUE	(1000 - 1)  // サンプリング周期 = PLL0AUDIO / 1000
 #define ADCCLK_DGECI 0
 #define FIFO_SIZE       8
 #define DMA_LLI_NUM    16//リンクリストの個数．最低４個くらい必要
@@ -219,6 +219,7 @@ void VADC_SetupDMA(void)
   {
 	if (i == DMA_LLI_NUM / 2)//リンクリストの半分まで来たらBUFFER0からBUFFER1にSRAMアドレスを切り替える
 		buffer = CAPTUREBUFFER1;
+	//0x4000 210C(DMA Channel Control register)参照
 	DMA_LTable[i].SrcAddr = VADC_DMA_READ_SRC;
 	DMA_LTable[i].DstAddr = (uint32_t)buffer;
 	DMA_LTable[i].NextLLI = (uint32_t)(&DMA_LTable[(i+1) % DMA_LLI_NUM]);//次ブロックのポインタを指定(環状リンクリスト)
@@ -260,15 +261,11 @@ void VADC_SetupDMA(void)
 
 void VADC_Init(void)
 {
-  CGU_EntityConnect(CGU_CLKSRC_PLL0_AUDIO, CGU_BASE_VADC);
-  CGU_EnableEntity(CGU_BASE_VADC, ENABLE);
+  CGU_EntityConnect(CGU_CLKSRC_PLL0_AUDIO, CGU_BASE_VADC);//VADCをPLL0AUDIOに接続
+  CGU_EnableEntity(CGU_BASE_VADC, ENABLE);//VADCに電源供給
 
-//  RGU_SoftReset(RGU_SIG_DMA);
-//  while(RGU_GetSignalStatus(RGU_SIG_DMA));
-
-  // Reset the VADC block
-  RGU_SoftReset(RGU_SIG_VADC);
-  while(RGU_GetSignalStatus(RGU_SIG_VADC));
+  RGU_SoftReset(RGU_SIG_VADC);  // Reset the VADC block
+  while(RGU_GetSignalStatus(RGU_SIG_VADC));//リセット解除待ち
 
   // Disable the VADC interrupt
   NVIC_DisableIRQ(VADC_IRQn);
@@ -287,6 +284,7 @@ void VADC_Init(void)
   LPC_VADC->FLUSH = 1;
 
   // FIFO Settings
+  //32bitx8回(16回分のデータ)のサンプリングが終わったらDMA転送
   LPC_VADC->FIFO_CFG =
     (1<<0) |         /* PACKED_READ:      0= 1 sample packed into 32 bit, 1= 2 samples packed into 32 bit */
     (FIFO_SIZE<<1);  /* FIFO_LEVEL:       When FIFO contains this or more samples raise FIFO_FULL irq and DMA_Read_Req, default is 8 */
@@ -321,11 +319,12 @@ void VADC_Init(void)
     ADCCLK_DGECI;   /* DGECx:      For CRS=3 all should be 0xF, for CRS=4 all should be 0xE, */
                        /*             for all other cases it should be 0 */
 
+  //デバイス内のDCバイアス設定(データシート通りの動作にならない．よくわからん．)
   LPC_VADC->POWER_CONTROL =
     (0 /*crs*/ << 0) |    /* CRS:          current setting for power versus speed programming */
-    (1 << 4) |      /* DCINNEG:      0=no dc bias, 1=dc bias on vin_neg slide */
-    (0 << 10) |     /* DCINPOS:      0=no dc bias, 1=dc bias on vin_pos slide */
-    (0 << 16) |     /* TWOS:         0=offset binary, 1=two's complement */
+    (1 << 4) |      /* DCINNEG:      0=no dc bias, 1=dc bias(0.5V) on vin_neg slide */
+    (1 << 10) |     /* DCINPOS:      0=no dc bias, 1=dc bias(0.5V) on vin_pos slide */
+    (0 << 16) |     /* TWOS:         0=offset binary0x000~0xFFF, 1=two's complement */
     (1 << 17) |     /* POWER_SWITCH: 0=ADC is power gated, 1=ADC is active */
     (1 << 18);      /* BGAP_SWITCH:  0=ADC bandgap reg is power gated, 1=ADC bandgap is active */
 }
@@ -341,9 +340,7 @@ void VADC_Stop(void)
   // disable DMA
   LPC_GPDMA->C0CONFIG |= (1 << 18); //halt further requests
 
-  NVIC_DisableIRQ(I2S0_IRQn);
   NVIC_DisableIRQ(DMA_IRQn);
-  //NVIC_DisableIRQ(VADC_IRQn);
 
   LPC_VADC->TRIGGER = 0;
   // Clear FIFO

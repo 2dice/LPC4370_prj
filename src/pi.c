@@ -10,11 +10,11 @@
 
 
 // PLL0AUDIO: 150kHz = (12MHz / 64) * (4 * 2) / (5 * 2)
-//mselは1~131071の範囲であること
+//mselは1~32768の範囲であることFin4k~150M,Fcco275M~550M,Fout4.3M~550M
 //nselは1~256の範囲であること
 //pselは1~32の範囲であること
-#define PLL0_MSEL	4
-#define PLL0_NSEL	64
+#define PLL0_MSEL	416
+#define PLL0_NSEL	25
 #define PLL0_PSEL	5
 void ADC_DMA_Init()
 {
