@@ -100,7 +100,7 @@ int main(void) {
 	GPIO_ClearValue(0,1<<8);// GPIO0[8]出力L
 
 ////////////////////wave_gen///////////////////////////////
-	int i;
+	uint16_t i;
 	gen_dac_cfg_t cfg;
     cfg.amplitude=5000;
     cfg.dcOffset=0;
@@ -110,14 +110,14 @@ int main(void) {
     wave_gen(&cfg, &buf);
 
 ////////////////////fft///////////////////////////////
-	#define FFT_SAMPLES 512 /* 2048 real party and 2048 imaginary parts */
+	#define FFT_SAMPLES 8192 /* 4096 real party and 4096 imaginary parts */
 	#define FFT_SIZE (FFT_SAMPLES / 2) /* FFT size is always the same size as we have samples, so 2048 in our case */
 	arm_cfft_radix4_instance_f32 S;	/* ARM CFFT module */
 	float32_t Input[FFT_SAMPLES];
 	float32_t Output[FFT_SIZE];
 	float32_t maxValue;	/* Max FFT value is stored here */
 	uint32_t maxIndex;	/* Index in Output array where max value is */
-
+	printf("filgen\n");
 	//ジェネレータのバッファを埋める
 	int j;
 	j = 0;
@@ -132,22 +132,26 @@ int main(void) {
 		}
 	}
 
+	printf("fftinit\n");
 	/* Initialize the CFFT/CIFFT module, intFlag = 0, doBitReverse = 1 */
 	arm_cfft_radix4_init_f32(&S, FFT_SIZE, 0, 1);
+	printf("input set\n");
 	for (i = 0; i < FFT_SAMPLES; i += 2) {
 		Input[(uint16_t)i] = (float32_t)((float32_t)buf.LUT_BUFFER[i/2] - (float32_t)2048.0) / (float32_t)2048.0;
 		Input[(uint16_t)(i + 1)] = 0;
 	}
+	printf("fft start\n");
 	/* Process the data through the CFFT/CIFFT module */
 	arm_cfft_radix4_f32(&S, Input);
 	/* Process the data through the Complex Magniture Module for calculating the magnitude at each bin */
+	printf("mag\n");
 	arm_cmplx_mag_f32(Input, Output, FFT_SIZE);
 	/* Calculates maxValue and returns corresponding value */
 	arm_max_f32(Output, FFT_SIZE, &maxValue, &maxIndex);
 	printf("max%f\n",maxValue);
 	printf("index%d\n",maxIndex);
 	printf("FFT\n");
-	for (i=0; i < FFT_SIZE/2; i++)
+	for (i=0; i < FFT_SIZE/20; i++)
 	{
 		printf("%f\n",Output[i]);//printf表示テスト用.処理が遅すぎて割り込みが不安定になる
 	}
