@@ -174,11 +174,11 @@ void setup_pll0audio(uint32_t msel, uint32_t nsel, uint32_t psel)
 }
 
 ////////////////////////////////ADCコントロール////////////////////////////
-#define CAPTUREBUFFER_SIZE	0x2000 //0x10000(64kB)から0x2000(8kB=4kBx2)に変更
+#define CAPTUREBUFFER_SIZE	0x4000 //0x10000(64kB)から0x4000(16kB=8kBx2)に変更
 #define CAPTUREBUFFER0		((uint8_t*)0x20000000)//16kB AHB SRAMx2
 #define CAPTUREBUFFER1		((uint8_t*)0x20008000)//16kB AHB SRAMx2
 #define CAPTUREBUFFER_SIZEHALF	0x8000
-#define ADCCLK_MATCHVALUE	(1000 - 1)  // サンプリング周期 = PLL0AUDIO / 1000
+#define ADCCLK_MATCHVALUE	(500 - 1)  // サンプリング周期 = PLL0AUDIO / 500 = 79.872ksps
 #define ADCCLK_DGECI 0
 #define FIFO_SIZE       8
 #define DMA_LLI_NUM    16//リンクリストの個数．最低４個くらい必要

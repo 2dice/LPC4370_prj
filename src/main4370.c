@@ -89,8 +89,8 @@ void systick_delay(uint32_t delayTicks) {
 volatile uint32_t *ADC;
 int main(void) {
     setup_systemclock();
-//    ADC_DMA_Init();
-//    NVIC_SetPriority(DMA_IRQn,   ((0x01<<3)|0x01));
+    ADC_DMA_Init();
+    NVIC_SetPriority(DMA_IRQn,   ((0x01<<3)|0x01));
 
     //TODO:TimerInitに切り出し
 	// Setup SysTick Timer to interrupt at 10 msec intervals
@@ -105,11 +105,12 @@ int main(void) {
     cfg.amplitude=5000;
     cfg.dcOffset=0;
     cfg.frequency=1500;
-    cfg.waveform=GEN_DAC_CFG_WAVE_SQUARE;
+    cfg.waveform=GEN_DAC_CFG_WAVE_SINUS;
     dac_buffer_t buf;
     wave_gen(&cfg, &buf);
 
 ////////////////////fft///////////////////////////////
+    //TODO:バッファをstaticにして関数切り出し．割り込みから呼ぶ，切り出し先はfft.c
 	#define FFT_SAMPLES 8192 /* 4096 real party and 4096 imaginary parts */
 	#define FFT_SIZE (FFT_SAMPLES / 2) /* FFT size is always the same size as we have samples, so 2048 in our case */
 	arm_cfft_radix4_instance_f32 S;	/* ARM CFFT module */
@@ -117,7 +118,6 @@ int main(void) {
 	float32_t Output[FFT_SIZE];
 	float32_t maxValue;	/* Max FFT value is stored here */
 	uint32_t maxIndex;	/* Index in Output array where max value is */
-	printf("filgen\n");
 	//ジェネレータのバッファを埋める
 	int j;
 	j = 0;
@@ -132,30 +132,21 @@ int main(void) {
 		}
 	}
 
-	printf("fftinit\n");
 	/* Initialize the CFFT/CIFFT module, intFlag = 0, doBitReverse = 1 */
 	arm_cfft_radix4_init_f32(&S, FFT_SIZE, 0, 1);
-	printf("input set\n");
 	for (i = 0; i < FFT_SAMPLES; i += 2) {
 		Input[(uint16_t)i] = (float32_t)((float32_t)buf.LUT_BUFFER[i/2] - (float32_t)2048.0) / (float32_t)2048.0;
 		Input[(uint16_t)(i + 1)] = 0;
 	}
-	printf("fft start\n");
 	/* Process the data through the CFFT/CIFFT module */
 	arm_cfft_radix4_f32(&S, Input);
 	/* Process the data through the Complex Magniture Module for calculating the magnitude at each bin */
-	printf("mag\n");
 	arm_cmplx_mag_f32(Input, Output, FFT_SIZE);
 	/* Calculates maxValue and returns corresponding value */
 	arm_max_f32(Output, FFT_SIZE, &maxValue, &maxIndex);
-	printf("max%f\n",maxValue);
-	printf("index%d\n",maxIndex);
-	printf("FFT\n");
-	for (i=0; i < FFT_SIZE/20; i++)
-	{
-		printf("%f\n",Output[i]);//printf表示テスト用.処理が遅すぎて割り込みが不安定になる
-	}
-///////////////////////////////////////////////////
+	//DA=30000sps/4096bit=7.32421875Hzステップでデータが格納されている
+	//AD=79872sps/4096bit=19.5Hzステップでデータが格納される
+	///////////////////////////////////////////////////
 
     // Enter an infinite loop
     while(1) {
