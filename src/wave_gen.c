@@ -31,7 +31,7 @@ void wave_gen(const gen_dac_cfg_t * const cfg, dac_buffer_t *dacBuffer)
   int i;
   int val;
   float dcOffset = cfg->dcOffset / 1000.0;
-  float amplitude = cfg->amplitude / 1000.0 * 2;
+  float amplitude = cfg->amplitude / 1000.0;
   uint32_t lutSize;
   lutSize = DAC_SPS/cfg->frequency;
 

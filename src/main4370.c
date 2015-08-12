@@ -79,18 +79,10 @@ void systick_delay(uint32_t delayTicks) {
 	while ((msTicks - currentTicks) < delayTicks);
 }
 
+
 volatile uint32_t *ADC;
 int main(void) {
     setup_systemclock();
-
-    gen_dac_cfg_t cfg;
-    cfg.amplitude=2500;
-    cfg.dcOffset=0;
-    cfg.frequency=1500;
-    cfg.waveform=GEN_DAC_CFG_WAVE_SINUS;
-    dac_buffer_t buf;
-    wave_gen(&cfg, &buf);
-
 //    ADC_DMA_Init();
 //    NVIC_SetPriority(DMA_IRQn,   ((0x01<<3)|0x01));
 
@@ -102,13 +94,22 @@ int main(void) {
 	GPIO_ClearValue(0,1<<8);// GPIO0[8]出力L
 
 	int i;
+	gen_dac_cfg_t cfg;
+    cfg.amplitude=5000;
+    cfg.dcOffset=0;
+    cfg.frequency=1500;
+    cfg.waveform=GEN_DAC_CFG_WAVE_SINUS;
+    dac_buffer_t buf;
+    wave_gen(&cfg, &buf);
+	for (i=0; i < buf.numLUTEntries; i++)
+	{
+		printf("%d\n",buf.LUT_BUFFER[i]);//printf表示テスト用.処理が遅すぎて割り込みが不安定になる
+    	systick_delay(100);
+	}
+
     // Enter an infinite loop
     while(1) {
-    	for (i=0; i < buf.numLUTEntries; i++)
-    	{
-    		printf("%d\n",buf.LUT_BUFFER[i]);//printf表示テスト用.処理が遅すぎて割り込みが不安定になる
-        	systick_delay(100);
-    	}
+    	systick_delay(100);
     }
 	ADC_DMA_Exit();
     return 0 ;
