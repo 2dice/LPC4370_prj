@@ -36,7 +36,7 @@ typedef struct
 } gen_dac_cfg_t;
 
 /*! Size of lookup table for waveform data */
-#define MAX_LUT_SIZE  2000
+#define MAX_LUT_SIZE  2048
 /*! @brief Configuration of one analog output. */
 typedef struct
 {

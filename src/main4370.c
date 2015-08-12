@@ -8,6 +8,9 @@
 ===============================================================================
 */
 
+#ifdef __USE_CMSIS
+#include "LPC43xx.h"
+#endif
 // ペリフェラルを定義したライブラリをインクルード(CMSIS_LPC43xx_DriverLib)
 #include <lpc43xx.h>
 #include <lpc43xx_gpio.h>
@@ -17,6 +20,9 @@
 #include <cr_section_macros.h>
 
 #include <stdio.h>
+////////////////FFT用////////////////////
+#include <arm_math.h>
+////////////////////////////////////////
 
 // 独自定義したヘッダをインクルード
 #include "pi.h"
@@ -93,19 +99,59 @@ int main(void) {
 	GPIO_SetDir(0,1<<8, 1);	// GPIO0[8]を出力に設定
 	GPIO_ClearValue(0,1<<8);// GPIO0[8]出力L
 
+////////////////////wave_gen///////////////////////////////
 	int i;
 	gen_dac_cfg_t cfg;
     cfg.amplitude=5000;
     cfg.dcOffset=0;
     cfg.frequency=1500;
-    cfg.waveform=GEN_DAC_CFG_WAVE_SINUS;
+    cfg.waveform=GEN_DAC_CFG_WAVE_SQUARE;
     dac_buffer_t buf;
     wave_gen(&cfg, &buf);
-	for (i=0; i < buf.numLUTEntries; i++)
+
+////////////////////fft///////////////////////////////
+	#define FFT_SAMPLES 512 /* 2048 real party and 2048 imaginary parts */
+	#define FFT_SIZE (FFT_SAMPLES / 2) /* FFT size is always the same size as we have samples, so 2048 in our case */
+	arm_cfft_radix4_instance_f32 S;	/* ARM CFFT module */
+	float32_t Input[FFT_SAMPLES];
+	float32_t Output[FFT_SIZE];
+	float32_t maxValue;	/* Max FFT value is stored here */
+	uint32_t maxIndex;	/* Index in Output array where max value is */
+
+	//ジェネレータのバッファを埋める
+	int j;
+	j = 0;
+	for (i=buf.numLUTEntries; i < FFT_SIZE; i++)
 	{
-		printf("%d\n",buf.LUT_BUFFER[i]);//printf表示テスト用.処理が遅すぎて割り込みが不安定になる
-    	systick_delay(100);
+		buf.LUT_BUFFER[i] = buf.LUT_BUFFER[j];
+		if(j==buf.numLUTEntries-1)
+		{
+			j=0;
+		}else{
+			j++;
+		}
 	}
+
+	/* Initialize the CFFT/CIFFT module, intFlag = 0, doBitReverse = 1 */
+	arm_cfft_radix4_init_f32(&S, FFT_SIZE, 0, 1);
+	for (i = 0; i < FFT_SAMPLES; i += 2) {
+		Input[(uint16_t)i] = (float32_t)((float32_t)buf.LUT_BUFFER[i/2] - (float32_t)2048.0) / (float32_t)2048.0;
+		Input[(uint16_t)(i + 1)] = 0;
+	}
+	/* Process the data through the CFFT/CIFFT module */
+	arm_cfft_radix4_f32(&S, Input);
+	/* Process the data through the Complex Magniture Module for calculating the magnitude at each bin */
+	arm_cmplx_mag_f32(Input, Output, FFT_SIZE);
+	/* Calculates maxValue and returns corresponding value */
+	arm_max_f32(Output, FFT_SIZE, &maxValue, &maxIndex);
+	printf("max%f\n",maxValue);
+	printf("index%d\n",maxIndex);
+	printf("FFT\n");
+	for (i=0; i < FFT_SIZE/2; i++)
+	{
+		printf("%f\n",Output[i]);//printf表示テスト用.処理が遅すぎて割り込みが不安定になる
+	}
+///////////////////////////////////////////////////
 
     // Enter an infinite loop
     while(1) {
