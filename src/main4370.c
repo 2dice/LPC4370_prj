@@ -160,10 +160,10 @@ int main(void) {
 	LPC_GPIO_PORT->DIR[5] |= (1UL << 9);
 	LPC_GPIO_PORT->SET[5] |= (1UL << 9);
 
-	uint8_t data[50][240];
+	uint16_t data[240][25];
 	for (i = 0; i < 240; i++) {
-		for (j = 0; j < 50; j++) {
-			data[j][i]=0x00;
+		for (j = 0; j < 25; j++) {
+			data[i][j]=0x0000;
 		}
 	}
 	lcd_init();
@@ -173,20 +173,20 @@ int main(void) {
 
     // Enter an infinite loop
     while(1) {
-    	systick_delay(100);
+    	systick_delay(1);
     	GPIO_SetValue(0,1<<8);// GPIO0[8]出力H
     	for (i = 0; i < 240; i++) {
-    		for (j = 0; j < 50; j++) {
-    			data[j][i]=0x00;
+    		for (j = 0; j < 25; j++) {
+    			data[i][j]=0x0000;
     		}
     	}
     	lcd_write(data);
 
-    	systick_delay(100);
+    	systick_delay(1);
     	GPIO_ClearValue(0,1<<8);// GPIO0[8]出力L
     	for (i = 0; i < 240; i++) {
-    		for (j = 0; j < 50; j++) {
-    			data[j][i]=0xFF;
+    		for (j = 0; j < 25; j++) {
+    			data[i][j]=0xFFFF;
     		}
     	}
     	lcd_write(data);

@@ -39,7 +39,7 @@ void lcd_clear(void)
 	spi_lcd_clear();
 }
 
-void lcd_write(uint8_t data[50][240])
+void lcd_write(uint16_t data[240][25])
 {
 	spi_lcd_write(data);
 }

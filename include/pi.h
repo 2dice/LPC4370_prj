@@ -11,6 +11,6 @@ void ADC_DMA_Exit(void);
 
 void lcd_init(void);
 void lcd_clear(void);
-void lcd_write(uint8_t data[50][240]);
+void lcd_write(uint16_t data[240][25]);
 
 #endif

@@ -5,6 +5,6 @@
 
 void spi_lcd_init(void);
 void spi_lcd_clear(void);
-void spi_lcd_write(uint8_t data[50][240]);
+void spi_lcd_write(uint16_t data[240][25]);
 
 #endif

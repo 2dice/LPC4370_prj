@@ -19,7 +19,7 @@
 #define SSP_PORT  (LPC_SSP1)
 
 /*! Clock rate to use */
-#define SSP_CLOCK 2000000
+#define SSP_CLOCK 2500000
 
 static SSP_CFG_Type SSP_ConfigStruct;
 
@@ -31,7 +31,7 @@ void spi_lcd_init(void)
 
   // Set clock rate and number of address bits
   SSP_ConfigStruct.ClockRate = SSP_CLOCK;
-  SSP_ConfigStruct.Databit = SSP_DATABIT_8;
+  SSP_ConfigStruct.Databit = SSP_DATABIT_16;
 
   // Initialize SSP peripheral with parameter given in structure above
   SSP_Init(SSP_PORT, &SSP_ConfigStruct);
@@ -40,7 +40,7 @@ void spi_lcd_init(void)
   SSP_Cmd(SSP_PORT, ENABLE);
 }
 
-#define RBIT8(x) (uint8_t)(__RBIT((uint32_t)x) >> 24)
+#define RBIT8(x) (uint8_t)(__RBIT((uint32_t)(x)) >> 24)
 void spi_lcd_clear(void)
 {
 	SSP_DATA_SETUP_Type sspCfg;
@@ -54,7 +54,47 @@ void spi_lcd_clear(void)
 	SSP_ReadWrite(SSP_PORT, &sspCfg, SSP_TRANSFER_POLLING);
 }
 
-void spi_lcd_write(uint8_t data[50][240])
+#define RBIT16(x) (uint16_t)(__RBIT((uint32_t)(x)) >> 16)
+void spi_lcd_write(uint16_t data[240][25])
+{
+	SSP_DATA_SETUP_Type sspCfg;
+	uint16_t tmp[240][26];
+	int i;
+	int j;
+
+	CS_ON;
+//モード選択8bit+アドレス8bit
+	tmp[0][0] = RBIT16(0x01 | 0x01<<8);//データ更新モード,COM反転なし|アドレスL1
+//データ400bit(50byte)
+	for (i=0; i < 25; i++){
+		tmp[0][i+1] = RBIT16(data[0][i]);
+	}
+
+	for (j = 1; j < 240 ; j++){	//line-loop
+		//ダミー8bit+アドレス8bit
+		tmp[j][0] = RBIT16(0x00 | (j+1)<<8);
+		//データ400bit(50byte)
+		for (i = 0; i < 25; i++){	//row-loop
+			tmp[j][i+1] = RBIT16(data[j][i]);
+		}
+	}
+	sspCfg.tx_data = tmp;
+	sspCfg.rx_data = NULL;
+	sspCfg.length  = 52*240;
+	SSP_ReadWrite(SSP_PORT, &sspCfg, SSP_TRANSFER_POLLING);
+
+	//ダミー16bit
+	tmp[0][0] = RBIT16(0x0000);
+	sspCfg.tx_data = tmp;
+	sspCfg.rx_data = NULL;
+	sspCfg.length  = 2;
+	SSP_ReadWrite(SSP_PORT, &sspCfg, SSP_TRANSFER_POLLING);
+
+	CS_OFF;
+	//tmp[0] = RBIT16(0x55<<8 | 0xAA);
+}
+
+void spi_lcd_write2(uint8_t data[50][240])
 {
 	SSP_DATA_SETUP_Type sspCfg;
 	uint8_t tmp[240][52];
