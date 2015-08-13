@@ -6,6 +6,7 @@
  */
 
 #include <lpc43xx_ssp.h>
+#include <lpc43xx_scu.h>
 #include "p_spi.h"
 
 
@@ -21,11 +22,22 @@
 /*! Clock rate to use */
 #define SSP_CLOCK 2500000
 
+#define SETTINGS_SSP (PUP_DISABLE | PDN_DISABLE | SLEWRATE_SLOW | INBUF_ENABLE  | FILTER_ENABLE)
+#define SETTINGS_GPIO_OUT (PUP_DISABLE | PDN_DISABLE | SLEWRATE_SLOW |          FILTER_ENABLE)
+
 static SSP_CFG_Type SSP_ConfigStruct;
 
 
 void spi_lcd_init(void)
 {
+	scu_pinmux(0x1,  3, SETTINGS_SSP, FUNC5); //SSP1_MISO
+	scu_pinmux(0x1,  4, SETTINGS_SSP, FUNC5); //SSP1_MOSI
+	scu_pinmux(0xF,  4, SETTINGS_SSP, FUNC0); //SSP1_SCK
+	scu_pinmux(0x3,  2, SETTINGS_GPIO_OUT, FUNC4); //GPIO5[9], available on J7-12
+
+	LPC_GPIO_PORT->DIR[5] |= (1UL << 9);
+	LPC_GPIO_PORT->SET[5] |= (1UL << 9);
+
   // Initialize SSP configuration structure to default
   SSP_ConfigStructInit(&SSP_ConfigStruct);
 

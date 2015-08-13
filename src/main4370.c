@@ -22,8 +22,7 @@
 #include <stdio.h>
 ////////////////FFT用////////////////////
 #include <arm_math.h>
-////////////////ssp用////////////////////
-#include <lpc43xx_scu.h>
+
 ////////////////////////////////////////
 
 // 独自定義したヘッダをインクルード
@@ -89,6 +88,7 @@ void systick_delay(uint32_t delayTicks) {
 
 
 volatile uint32_t *ADC;
+static uint16_t lcd_data[240][25];
 int main(void) {
     setup_systemclock();
     //ADC_DMA_Init();
@@ -98,8 +98,8 @@ int main(void) {
 	// Setup SysTick Timer to interrupt at 10 msec intervals
 	SysTick_Config(CGU_GetPCLKFrequency(CGU_PERIPHERAL_M4CORE)/100);
 
-	GPIO_SetDir(0,1<<8, 1);	// GPIO0[8]を出力に設定
-	GPIO_ClearValue(0,1<<8);// GPIO0[8]出力L
+	GPIO_SetDir(0,1<<8, 1);	// GPIO0[8](LED)を出力に設定
+	GPIO_ClearValue(0,1<<8);// GPIO0[8](LED)出力L
 
 ////////////////////wave_gen///////////////////////////////
 	uint16_t i;
@@ -120,7 +120,7 @@ int main(void) {
 	float32_t Output[FFT_SIZE];
 	float32_t maxValue;	/* Max FFT value is stored here */
 	uint32_t maxIndex;	/* Index in Output array where max value is */
-	//ジェネレータのバッファを埋める
+	//ジェネレータのバッファを埋める(ジェネレータ入力時の不足データを繰り返しで埋める)(TODO:ADとgenを振り分け)
 	int j;
 	j = 0;
 	for (i=buf.numLUTEntries; i < FFT_SIZE; i++)
@@ -150,46 +150,27 @@ int main(void) {
 	//AD=79872sps/4096bit=19.5Hzステップでデータが格納される
 
 ////////////////spi///////////////////////////////////
-	#define SETTINGS_SSP (PUP_DISABLE | PDN_DISABLE | SLEWRATE_SLOW | INBUF_ENABLE  | FILTER_ENABLE)
-	#define SETTINGS_GPIO_OUT (PUP_DISABLE | PDN_DISABLE | SLEWRATE_SLOW |          FILTER_ENABLE)
-	scu_pinmux(0x1,  3, SETTINGS_SSP, FUNC5); //SSP1_MISO
-	scu_pinmux(0x1,  4, SETTINGS_SSP, FUNC5); //SSP1_MOSI
-	scu_pinmux(0xF,  4, SETTINGS_SSP, FUNC0); //SSP1_SCK
-	scu_pinmux(0x3,  2, SETTINGS_GPIO_OUT, FUNC4); //GPIO5[9], available on J7-12
-
-	LPC_GPIO_PORT->DIR[5] |= (1UL << 9);
-	LPC_GPIO_PORT->SET[5] |= (1UL << 9);
-
-	uint16_t data[240][25];
-	for (i = 0; i < 240; i++) {
-		for (j = 0; j < 25; j++) {
-			data[i][j]=0x0000;
-		}
-	}
 	lcd_init();
 	lcd_clear();
-
 //////////////////////////////////////////////////////
 
     // Enter an infinite loop
     while(1) {
     	systick_delay(1);
-    	GPIO_SetValue(0,1<<8);// GPIO0[8]出力H
     	for (i = 0; i < 240; i++) {
     		for (j = 0; j < 25; j++) {
-    			data[i][j]=0x0000;
+    			lcd_data[i][j]=0x0000;
     		}
     	}
-    	lcd_write(data);
+    	lcd_write(lcd_data);
 
     	systick_delay(1);
-    	GPIO_ClearValue(0,1<<8);// GPIO0[8]出力L
     	for (i = 0; i < 240; i++) {
     		for (j = 0; j < 25; j++) {
-    			data[i][j]=0xFFFF;
+    			lcd_data[i][j]=0xFFFF;
     		}
     	}
-    	lcd_write(data);
+    	lcd_write(lcd_data);
     }
 	ADC_DMA_Exit();
     return 0 ;
