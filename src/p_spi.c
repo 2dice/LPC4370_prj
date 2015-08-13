@@ -39,7 +39,21 @@ void spi_lcd_init(void)
   // Enable SSP peripheral
   SSP_Cmd(SSP_PORT, ENABLE);
 }
+
 #define RBIT8(x) (uint8_t)(__RBIT((uint32_t)x) >> 24)
+void spi_lcd_clear(void)
+{
+	SSP_DATA_SETUP_Type sspCfg;
+	uint8_t tmp[2];
+	//モード選択8bit+アドレス8bit
+	tmp[0] = RBIT8(0x04);//オールクリア,COM反転なし
+	tmp[1] = RBIT8(0x00);//dummy
+	sspCfg.tx_data = tmp;
+	sspCfg.rx_data = NULL;
+	sspCfg.length  = 2;
+	SSP_ReadWrite(SSP_PORT, &sspCfg, SSP_TRANSFER_POLLING);
+}
+
 void spi_lcd_write(uint8_t data[50][240])
 {
 	SSP_DATA_SETUP_Type sspCfg;

@@ -34,6 +34,11 @@ void lcd_init(void)
 	spi_lcd_init();
 }
 
+void lcd_clear(void)
+{
+	spi_lcd_clear();
+}
+
 void lcd_write(uint8_t data[50][240])
 {
 	spi_lcd_write(data);

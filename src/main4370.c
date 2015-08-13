@@ -91,8 +91,8 @@ void systick_delay(uint32_t delayTicks) {
 volatile uint32_t *ADC;
 int main(void) {
     setup_systemclock();
-    ADC_DMA_Init();
-    NVIC_SetPriority(DMA_IRQn,   ((0x01<<3)|0x01));
+    //ADC_DMA_Init();
+    //NVIC_SetPriority(DMA_IRQn,   ((0x01<<3)|0x01));
 
     //TODO:TimerInitに切り出し
 	// Setup SysTick Timer to interrupt at 10 msec intervals
@@ -156,27 +156,39 @@ int main(void) {
 	scu_pinmux(0x1,  4, SETTINGS_SSP, FUNC5); //SSP1_MOSI
 	scu_pinmux(0xF,  4, SETTINGS_SSP, FUNC0); //SSP1_SCK
 	scu_pinmux(0x3,  2, SETTINGS_GPIO_OUT, FUNC4); //GPIO5[9], available on J7-12
+
 	LPC_GPIO_PORT->DIR[5] |= (1UL << 9);
 	LPC_GPIO_PORT->SET[5] |= (1UL << 9);
 
 	uint8_t data[50][240];
 	for (i = 0; i < 240; i++) {
 		for (j = 0; j < 50; j++) {
-			if(i%2==0){
-				data[j][i]=0x00;
-			}else{
-				data[j][i]=0x00;
-			}
+			data[j][i]=0x00;
 		}
 	}
 	lcd_init();
-	lcd_write(data);
+	lcd_clear();
 
 //////////////////////////////////////////////////////
 
     // Enter an infinite loop
     while(1) {
     	systick_delay(100);
+    	GPIO_SetValue(0,1<<8);// GPIO0[8]出力H
+    	for (i = 0; i < 240; i++) {
+    		for (j = 0; j < 50; j++) {
+    			data[j][i]=0x00;
+    		}
+    	}
+    	lcd_write(data);
+
+    	systick_delay(100);
+    	GPIO_ClearValue(0,1<<8);// GPIO0[8]出力L
+    	for (i = 0; i < 240; i++) {
+    		for (j = 0; j < 50; j++) {
+    			data[j][i]=0xFF;
+    		}
+    	}
     	lcd_write(data);
     }
 	ADC_DMA_Exit();
