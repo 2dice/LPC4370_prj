@@ -22,6 +22,8 @@
 #include <stdio.h>
 ////////////////FFT用////////////////////
 #include <arm_math.h>
+////////////////ssp用////////////////////
+#include <lpc43xx_scu.h>
 ////////////////////////////////////////
 
 // 独自定義したヘッダをインクルード
@@ -146,11 +148,36 @@ int main(void) {
 	arm_max_f32(Output, FFT_SIZE, &maxValue, &maxIndex);
 	//DA=30000sps/4096bit=7.32421875Hzステップでデータが格納されている
 	//AD=79872sps/4096bit=19.5Hzステップでデータが格納される
-	///////////////////////////////////////////////////
+
+////////////////spi///////////////////////////////////
+	#define SETTINGS_SSP (PUP_DISABLE | PDN_DISABLE | SLEWRATE_SLOW | INBUF_ENABLE  | FILTER_ENABLE)
+	#define SETTINGS_GPIO_OUT (PUP_DISABLE | PDN_DISABLE | SLEWRATE_SLOW |          FILTER_ENABLE)
+	scu_pinmux(0x1,  3, SETTINGS_SSP, FUNC5); //SSP1_MISO
+	scu_pinmux(0x1,  4, SETTINGS_SSP, FUNC5); //SSP1_MOSI
+	scu_pinmux(0xF,  4, SETTINGS_SSP, FUNC0); //SSP1_SCK
+	scu_pinmux(0x3,  2, SETTINGS_GPIO_OUT, FUNC4); //GPIO5[9], available on J7-12
+	LPC_GPIO_PORT->DIR[5] |= (1UL << 9);
+	LPC_GPIO_PORT->SET[5] |= (1UL << 9);
+
+	uint8_t data[50][240];
+	for (i = 0; i < 240; i++) {
+		for (j = 0; j < 50; j++) {
+			if(i%2==0){
+				data[j][i]=0x00;
+			}else{
+				data[j][i]=0x00;
+			}
+		}
+	}
+	lcd_init();
+	lcd_write(data);
+
+//////////////////////////////////////////////////////
 
     // Enter an infinite loop
     while(1) {
     	systick_delay(100);
+    	lcd_write(data);
     }
 	ADC_DMA_Exit();
     return 0 ;

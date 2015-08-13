@@ -7,7 +7,7 @@
 
 #include "pi.h"
 #include "p_adc_dma.h"
-
+#include "p_spi.h"
 
 // PLL0AUDIO: 150kHz = (12MHz / 64) * (4 * 2) / (5 * 2)
 //mselは1~32768の範囲であることFin4k~150M,Fcco275M~550M,Fout4.3M~550M
@@ -16,7 +16,7 @@
 #define PLL0_MSEL	416
 #define PLL0_NSEL	25
 #define PLL0_PSEL	5
-void ADC_DMA_Init()
+void ADC_DMA_Init(void)
 {
 	setup_pll0audio(PLL0_MSEL, PLL0_NSEL, PLL0_PSEL);
 	VADC_Init();
@@ -27,4 +27,14 @@ void ADC_DMA_Init()
 void ADC_DMA_Exit(void)
 {
 	VADC_Stop();
+}
+
+void lcd_init(void)
+{
+	spi_lcd_init();
+}
+
+void lcd_write(uint8_t data[50][240])
+{
+	spi_lcd_write(data);
 }
