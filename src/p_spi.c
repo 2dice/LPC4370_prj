@@ -57,7 +57,7 @@ void spi_lcd_clear(void)
 void spi_lcd_write(uint8_t data[50][240])
 {
 	SSP_DATA_SETUP_Type sspCfg;
-	uint8_t tmp[50];
+	uint8_t tmp[52];
 	int i;
 	int j;
 
@@ -65,34 +65,26 @@ void spi_lcd_write(uint8_t data[50][240])
 //モード選択8bit+アドレス8bit
 	tmp[0] = RBIT8(0x01);//データ更新モード,COM反転なし
 	tmp[1] = RBIT8(0x01);//アドレスL1
-	sspCfg.tx_data = tmp;
-	sspCfg.rx_data = NULL;
-	sspCfg.length  = 2;
-	SSP_ReadWrite(SSP_PORT, &sspCfg, SSP_TRANSFER_POLLING);
 //データ400bit(50byte)
 	for (i=0; i < 50; i++){
-		tmp[i] = RBIT8(data[i][0]);
+		tmp[i+2] = RBIT8(data[i][0]);
 	}
 	sspCfg.tx_data = tmp;
 	sspCfg.rx_data = NULL;
-	sspCfg.length  = 50;
+	sspCfg.length  = 52;
 	SSP_ReadWrite(SSP_PORT, &sspCfg, SSP_TRANSFER_POLLING);
 
 	for (j = 1; j < 240 ; j++){	//line-loop
 		//ダミー8bit+アドレス8bit
 		tmp[0] = RBIT8(0x00);//ダミー
 		tmp[1] = RBIT8(j+1);
-		sspCfg.tx_data = tmp;
-		sspCfg.rx_data = NULL;
-		sspCfg.length  = 2;
-		SSP_ReadWrite(SSP_PORT, &sspCfg, SSP_TRANSFER_POLLING);
 		//データ400bit(50byte)
 		for (i=0; i < 50; i++){	//row-loop
-			tmp[i] = RBIT8(data[i][j]);
+			tmp[i+2] = RBIT8(data[i][j]);
 		}
 		sspCfg.tx_data = tmp;
 		sspCfg.rx_data = NULL;
-		sspCfg.length  = 50;
+		sspCfg.length  = 52;
 		SSP_ReadWrite(SSP_PORT, &sspCfg, SSP_TRANSFER_POLLING);
 	}
 
