@@ -185,8 +185,11 @@ int main(void) {
     	}
     	for (i = 0; i < 400*scale_fft; i++ ){
     	    lcd_x = ((int16_t)(i/scale_fft) -200) * -1 + 200;//左右逆転(LCD都合
-    	    lcd_y = (uint16_t)Output[i];
-    	    lcd_data[lcd_y][lcd_x/16] = lcd_data[lcd_y][lcd_x/16] | 0x01<<(lcd_x%16);
+    	    lcd_y = (uint16_t)(Output[i]/maxValue*240);//FFT結果のMAX値を240に正規化
+    	    for (j = 0; j < lcd_y; j++)
+    	    {
+        	    lcd_data[j][lcd_x/16] = lcd_data[j][lcd_x/16] | 0x01<<(lcd_x%16);
+    	    }
     	}
     	lcd_write(lcd_data);
     	systick_delay(50);
