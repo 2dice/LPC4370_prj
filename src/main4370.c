@@ -156,6 +156,8 @@ int main(void) {
 #define RBIT16(x) (uint16_t)(__RBIT((uint32_t)(x)) >> 16)
 	uint16_t lcd_x;
 	uint16_t lcd_y;
+	uint8_t scale_time = 2;//横軸データ数を2倍表示
+	uint8_t scale_fft = 2;//横軸データ数を2倍表示
 
 //////////////////////////////////////////////////////
 
@@ -168,17 +170,30 @@ int main(void) {
     		}
     	}
     	lcd_write(lcd_data);
-
+//wav_genタイムドメイン表示
     	systick_delay(50);
     	for (i = 0; i < 240; i++) {
     		for (j = 0; j < 25; j++) {
     			lcd_data[i][j]=0x0000;
     		}
     	}
-    	for (i = 0; i < 400; i++ ){
-    		lcd_x = i;
+    	for (i = 0; i < 400*scale_time; i++ ){
+    		lcd_x = i/scale_time;
     		lcd_y = (buf.LUT_BUFFER[i]-2048)/17 + 120;//0~240に正規化
     		lcd_data[lcd_y][lcd_x/16] = lcd_data[lcd_y][lcd_x/16] | 0x01<<(lcd_x%16);
+    	}
+    	lcd_write(lcd_data);
+//wav_genFFT表示
+    	systick_delay(50);
+    	for (i = 0; i < 240; i++) {
+    	    for (j = 0; j < 25; j++) {
+    	    	lcd_data[i][j]=0x0000;
+    	    }
+    	}
+    	for (i = 0; i < 400*scale_fft; i++ ){
+    	    lcd_x = i/scale_fft;
+    	    lcd_y = (uint16_t)Output[i];//0~240に正規化
+    	    lcd_data[lcd_y][lcd_x/16] = lcd_data[lcd_y][lcd_x/16] | 0x01<<(lcd_x%16);
     	}
     	lcd_write(lcd_data);
     }
