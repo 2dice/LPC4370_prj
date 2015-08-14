@@ -76,51 +76,18 @@ void SysTick_Handler(void) {
 	msTicks++;
 }
 
-// ****************
-// systick_delay - creates a delay of the appropriate number of Systicks
-void systick_delay(uint32_t delayTicks) {
-	uint32_t currentTicks;
-
-	currentTicks = msTicks;	// read current tick counter
-	// Now loop until required number of ticks passes.
-	while ((msTicks - currentTicks) < delayTicks);
-}
-
-
-volatile uint32_t *ADC;
-static uint16_t lcd_data[240][25];
-int main(void) {
-    setup_systemclock();
-    //ADC_DMA_Init();
-    //NVIC_SetPriority(DMA_IRQn,   ((0x01<<3)|0x01));
-
-    //TODO:TimerInitに切り出し
-	// Setup SysTick Timer to interrupt at 10 msec intervals
-	SysTick_Config(CGU_GetPCLKFrequency(CGU_PERIPHERAL_M4CORE)/100);
-
-	GPIO_SetDir(0,1<<8, 1);	// GPIO0[8](LED)を出力に設定
-	GPIO_ClearValue(0,1<<8);// GPIO0[8](LED)出力L
-
-////////////////////wave_gen///////////////////////////////
-	uint16_t i;
-	gen_dac_cfg_t cfg;
-    cfg.amplitude=5000;
-    cfg.dcOffset=0;
-    cfg.frequency=150;
-    cfg.waveform=GEN_DAC_CFG_WAVE_SAWTOOTH;
-    dac_buffer_t buf;
-    wave_gen(&cfg, &buf);
-
-////////////////////fft///////////////////////////////
+#define FFT_SAMPLES 8192 /* 4096 real party and 4096 imaginary parts */
+#define FFT_SIZE (FFT_SAMPLES / 2) /* FFT size is always the same size as we have samples, so 2048 in our case */
+static float32_t Output[FFT_SIZE];
+static float32_t maxValue;	/* Max FFT value is stored here */
+static dac_buffer_t buf;
+void fft_gen(void){
     //TODO:バッファをstaticにして関数切り出し．割り込みから呼ぶ，切り出し先はfft.c
-	#define FFT_SAMPLES 8192 /* 4096 real party and 4096 imaginary parts */
-	#define FFT_SIZE (FFT_SAMPLES / 2) /* FFT size is always the same size as we have samples, so 2048 in our case */
 	arm_cfft_radix4_instance_f32 S;	/* ARM CFFT module */
 	float32_t Input[FFT_SAMPLES];
-	float32_t Output[FFT_SIZE];
-	float32_t maxValue;	/* Max FFT value is stored here */
 	uint32_t maxIndex;	/* Index in Output array where max value is */
 	//ジェネレータのバッファを埋める(ジェネレータ入力時の不足データを繰り返しで埋める)(TODO:ADとgenを振り分け)
+	uint16_t i;
 	int j;
 	j = 0;
 	for (i=buf.numLUTEntries; i < FFT_SIZE; i++)
@@ -148,18 +115,56 @@ int main(void) {
 	arm_max_f32(Output, FFT_SIZE, &maxValue, &maxIndex);
 	//DA=30000sps/4096bit=7.32421875Hzステップでデータが格納されている
 	//AD=79872sps/4096bit=19.5Hzステップでデータが格納される
+}
+
+// ****************
+// systick_delay - creates a delay of the appropriate number of Systicks
+void systick_delay(uint32_t delayTicks) {
+	uint32_t currentTicks;
+
+	currentTicks = msTicks;	// read current tick counter
+	// Now loop until required number of ticks passes.
+	while ((msTicks - currentTicks) < delayTicks);
+}
+
+
+volatile uint32_t *ADC;
+static uint16_t lcd_data[240][25];
+int main(void) {
+    setup_systemclock();
+    //ADC_DMA_Init();
+    //NVIC_SetPriority(DMA_IRQn,   ((0x01<<3)|0x01));
+
+    //TODO:TimerInitに切り出し
+	// Setup SysTick Timer to interrupt at 10 msec intervals
+	SysTick_Config(CGU_GetPCLKFrequency(CGU_PERIPHERAL_M4CORE)/100);
+
+	GPIO_SetDir(0,1<<8, 1);	// GPIO0[8](LED)を出力に設定
+	GPIO_ClearValue(0,1<<8);// GPIO0[8](LED)出力L
+
+////////////////////wave_gen///////////////////////////////
+	gen_dac_cfg_t cfg;
+    cfg.amplitude=5000;
+    cfg.dcOffset=0;
+    cfg.frequency=150;
+    cfg.waveform=GEN_DAC_CFG_WAVE_TRIANGLE;
+    wave_gen(&cfg, &buf);
+
+////////////////////fft///////////////////////////////
+    fft_gen();
 
 ////////////////spi///////////////////////////////////
 	lcd_init();
 	lcd_clear();
 ////////////////lcd///////////////////////////////////
-#define RBIT16(x) (uint16_t)(__RBIT((uint32_t)(x)) >> 16)
 	uint16_t lcd_x;
 	uint16_t lcd_y;
 	uint8_t scale_time = 2;//横軸データ数を2倍表示
 	uint8_t scale_fft = 2;//横軸データ数を2倍表示
 
 //////////////////////////////////////////////////////
+	uint16_t i;
+	int j;
 
     // Enter an infinite loop
     while(1) {
@@ -188,7 +193,7 @@ int main(void) {
     	    lcd_y = (uint16_t)(Output[i]/maxValue*240);//FFT結果のMAX値を240に正規化
     	    for (j = 0; j < lcd_y; j++)
     	    {
-        	    lcd_data[j][lcd_x/16] = lcd_data[j][lcd_x/16] | 0x01<<(lcd_x%16);
+        	    lcd_data[j][lcd_x/16] = lcd_data[j][lcd_x/16] | 0x01<<(lcd_x%16);//結果を白抜きにする
     	    }
     	}
     	lcd_write(lcd_data);
@@ -215,10 +220,10 @@ void DMA_IRQHandler (void)
   if (capture_count == 0)
   {
 	  GPIO_SetValue(0,1<<8);// GPIO0[8]出力H
+	  ADC = (uint32_t*)CAPTUREBUFFER0;
 	  capture_count ++;
   }else{
 	  GPIO_ClearValue(0,1<<8);// GPIO0[8]出力L
 	  capture_count = 0;
   }
-  ADC = (uint32_t*)CAPTUREBUFFER0;
 }
