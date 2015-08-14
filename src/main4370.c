@@ -107,7 +107,7 @@ int main(void) {
     cfg.amplitude=5000;
     cfg.dcOffset=0;
     cfg.frequency=150;
-    cfg.waveform=GEN_DAC_CFG_WAVE_SINUS;
+    cfg.waveform=GEN_DAC_CFG_WAVE_SAWTOOTH;
     dac_buffer_t buf;
     wave_gen(&cfg, &buf);
 
@@ -163,39 +163,33 @@ int main(void) {
 
     // Enter an infinite loop
     while(1) {
-    	systick_delay(50);
-    	for (i = 0; i < 240; i++) {
-    		for (j = 0; j < 25; j++) {
-    			lcd_data[i][j]=0xFFFF;
-    		}
-    	}
-    	lcd_write(lcd_data);
 //wav_genタイムドメイン表示
-    	systick_delay(50);
     	for (i = 0; i < 240; i++) {
     		for (j = 0; j < 25; j++) {
     			lcd_data[i][j]=0x0000;
     		}
     	}
     	for (i = 0; i < 400*scale_time; i++ ){
-    		lcd_x = i/scale_time;
+    	    lcd_x = ((int16_t)(i/scale_time) -200) * -1 + 200;//左右逆転(LCD都合
     		lcd_y = (buf.LUT_BUFFER[i]-2048)/17 + 120;//0~240に正規化
     		lcd_data[lcd_y][lcd_x/16] = lcd_data[lcd_y][lcd_x/16] | 0x01<<(lcd_x%16);
     	}
     	lcd_write(lcd_data);
-//wav_genFFT表示
     	systick_delay(50);
+
+//wav_genFFT表示
     	for (i = 0; i < 240; i++) {
     	    for (j = 0; j < 25; j++) {
     	    	lcd_data[i][j]=0x0000;
     	    }
     	}
     	for (i = 0; i < 400*scale_fft; i++ ){
-    	    lcd_x = i/scale_fft;
-    	    lcd_y = (uint16_t)Output[i];//0~240に正規化
+    	    lcd_x = ((int16_t)(i/scale_fft) -200) * -1 + 200;//左右逆転(LCD都合
+    	    lcd_y = (uint16_t)Output[i];
     	    lcd_data[lcd_y][lcd_x/16] = lcd_data[lcd_y][lcd_x/16] | 0x01<<(lcd_x%16);
     	}
     	lcd_write(lcd_data);
+    	systick_delay(50);
     }
 	ADC_DMA_Exit();
     return 0 ;
