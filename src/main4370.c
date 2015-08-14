@@ -106,7 +106,7 @@ int main(void) {
 	gen_dac_cfg_t cfg;
     cfg.amplitude=5000;
     cfg.dcOffset=0;
-    cfg.frequency=1500;
+    cfg.frequency=150;
     cfg.waveform=GEN_DAC_CFG_WAVE_SINUS;
     dac_buffer_t buf;
     wave_gen(&cfg, &buf);
@@ -152,23 +152,33 @@ int main(void) {
 ////////////////spi///////////////////////////////////
 	lcd_init();
 	lcd_clear();
+////////////////lcd///////////////////////////////////
+#define RBIT16(x) (uint16_t)(__RBIT((uint32_t)(x)) >> 16)
+	uint16_t lcd_x;
+	uint16_t lcd_y;
+
 //////////////////////////////////////////////////////
 
     // Enter an infinite loop
     while(1) {
-    	systick_delay(1);
+    	systick_delay(50);
+    	for (i = 0; i < 240; i++) {
+    		for (j = 0; j < 25; j++) {
+    			lcd_data[i][j]=0xFFFF;
+    		}
+    	}
+    	lcd_write(lcd_data);
+
+    	systick_delay(50);
     	for (i = 0; i < 240; i++) {
     		for (j = 0; j < 25; j++) {
     			lcd_data[i][j]=0x0000;
     		}
     	}
-    	lcd_write(lcd_data);
-
-    	systick_delay(1);
-    	for (i = 0; i < 240; i++) {
-    		for (j = 0; j < 25; j++) {
-    			lcd_data[i][j]=0xFFFF;
-    		}
+    	for (i = 0; i < 400; i++ ){
+    		lcd_x = i;
+    		lcd_y = (buf.LUT_BUFFER[i]-2048)/17 + 120;//0~240に正規化
+    		lcd_data[lcd_y][lcd_x/16] = lcd_data[lcd_y][lcd_x/16] | 0x01<<(lcd_x%16);
     	}
     	lcd_write(lcd_data);
     }
