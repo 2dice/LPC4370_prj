@@ -218,8 +218,8 @@ void DMA_IRQHandler (void)
 ////////////////lcd///////////////////////////////////
 	uint16_t lcd_x;
 	uint16_t lcd_y;
-	uint8_t scale_fft = 1;//横軸データ数を2倍表示
-	uint8_t scale_time = 2;//横軸データ数を2倍表示
+	uint16_t scale_fft = 1;//横軸データ数を1倍表示
+	uint16_t scale_time = 1;//横軸データ数を1倍表示
 
 //////////////////////////////////////////////////////
 if (LPC_GPDMA->INTERRSTAT & 1)
@@ -255,19 +255,21 @@ if (LPC_GPDMA->INTERRSTAT & 1)
 //wav_adcFFT
   fft_adc();
   //無音時のFFT結果をカット
-  if(maxValue<50)
-	  maxValue=50;
+  if(maxValue<30)
+	  maxValue=30;
   for (i = 0; i < 400*scale_fft; i++ ){
-	  lcd_x = ((int16_t)(i/scale_fft) -200) * -1 + 200;//左右逆転(LCD都合
+	  lcd_x = (int16_t)(((i/scale_fft) -200) * -1 + 200);//左右逆転(LCD都合
 	  lcd_y = (uint16_t)(Output[i]/maxValue*240);//FFT結果のMAX値を240に正規化
       for (j = 0; j < lcd_y; j++){
     	  lcd_data[j][lcd_x/16] = lcd_data[j][lcd_x/16] | 0x01<<(lcd_x%16);//結果を白抜きにする
       }
   }
-//wav_adcタイムドメイン表示
+//wav_adcタイムドメイン上書き
   for (i = 0; i < 400*scale_time; i++ ){
 	  lcd_x = ((int16_t)(i/scale_time) -200) * -1 + 200;//左右逆転(LCD都合
-	  lcd_y = (adc_buf[i]-2048)/17 + 120;//0~240に正規化
+	  lcd_y = (adc_buf[i]-2048)/17*3 + 120;//0~240*3に正規化
+	  if (lcd_y > 240)
+		  lcd_y = 240;
 	  lcd_data[lcd_y][lcd_x/16] = lcd_data[lcd_y][lcd_x/16] | 0x01<<(lcd_x%16);
   }
   lcd_write(lcd_data);
