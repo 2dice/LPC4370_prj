@@ -1,0 +1,61 @@
+
+■インポート
+プロジェクトのインポート
+  左下のQuickStartパネルからImportProjectを選ぶ(他の方法は不安定)
+ライブラリのインポート
+  同上，
+    /Applications/lpcxpresso_7.4.0_229/lpcxpresso/Examples/NXP/LPC4000/LPC43xx/LPC43xx_Libraries.zip
+  ※インポートするとworkspaceにコピーされる
+  ※このプロジェクトはReleaseでビルドすること
+    CMSIS_DSPLIB_CM4とCMSIS_LPC43xx_DriverLibが必要，
+
+■ビルド
+  projectExplorerで対象プロジェクトを選択し，
+  QuickStartメニューからBuild 'prjName'をクリックするとコンソールに結果が出る
+
+■書き込み
+  初期設定：プロジェクトを右クリック->debug as->debug configrations->debugger
+            ->debuggerタブのTargetConfigrationで
+              debugProtocol=SWD,EmulatorSelection=CMSIS-DAP
+  接続したらQuickStartのDebugLPC4370をクリック．mainでブレイクがかかるので
+  Resumeで実行
+  FMはbuildをRelease(Copy whole ...)にする
+
+■ライブラリの追加
+  プロジェクトを右クリック->properties->C/C++Build->Settings->ToolSettings
+  ->MCU Linker->Libraries->上下両方追加する．
+
+■includeファイルの追加
+  プロジェクトを右クリック->properties->C/C++Build->Settings->ToolSettings
+  ->MCU C Compiler->Includes->Include pathsに追加
+
+■データダンプ
+  DMA転送をロータリーエンコーダでHULTにする
+  プログラム実行をsuspend
+  window->showView->otherを選び，debug->memoryBrowserを選択
+  アドレスを入力し(0x20000000)Goでメモリの内容がダンプされる．
+  エクスポートボタンで開始・終了アドレスを指定してファイル名を指定して保存
+
+■データの可視化
+  プログラム内のcap.pyを使う．buf0.\*\:\*が上記エクスポートファイル
+  python cap.py ../../buf0.\*\;\*
+
+Serial Number:
+OWK1-ITL0-NYI5-JYIS-MUBW-PZCW-DYM5-M4B0-NZGX-EVPS-NXOX
+LPCXpresso Activation Key:
+B4KU-IQIZ-FRN0-MZCS-GUIV-GYA4-EWBS-GWCQ
+
+LPCXpressoバージョン7.4.0_229(gcc-4.8.4)を使用
+トラ技ARMデバッガを使用する場合はSJ7をショート
+ファームを上書きする
+ターゲット側のJP2はショートしなくてもいい
+
+■printfを使う方法
+プロジェクトを右クリック->propaties->C/C++build->settings->Tool Settings
+  ->MCU Linker->Managed Linker Script->Libraryを
+  RedLinb(none)からRedlib(semihost)に変更
+
+■自作includeフォルダにpathを通す
+プロジェクトを右クリック->propaties->C/C++build->settings->Tool Settings
+  ->MCU C Compiler->Includes->任意のディレクトリを追加
+
