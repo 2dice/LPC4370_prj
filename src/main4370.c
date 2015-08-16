@@ -76,7 +76,7 @@ void SysTick_Handler(void) {
 	msTicks++;
 }
 
-#define FFT_SAMPLES 8192 /* 4096 real party and 4096 imaginary parts */
+#define FFT_SAMPLES 2048 /* 1024 real party and 1024 imaginary parts */
 #define FFT_SIZE (FFT_SAMPLES / 2) /* FFT size is always the same size as we have samples, so 2048 in our case */
 static float32_t Output[FFT_SIZE];
 static float32_t maxValue;	/* Max FFT value is stored here */
@@ -242,7 +242,7 @@ if (LPC_GPDMA->INTERRSTAT & 1)
 	  capture_count = 0;
   }
 //AD値を配列に格納
-  for (i = 0; i < 4096/2-1; i++){
+  for (i = 0; i < FFT_SIZE/2-1; i++){
 	  adc_buf[i*2] = (uint16_t)(ADC[i] & 0x00000FFF);
 	  adc_buf[i*2+1] = (uint16_t)((ADC[i] & 0x0FFF0000)>>16);
   }
@@ -254,6 +254,9 @@ if (LPC_GPDMA->INTERRSTAT & 1)
   }
 //wav_adcFFT
   fft_adc();
+  //無音時のFFT結果をカット
+  if(maxValue<50)
+	  maxValue=50;
   for (i = 0; i < 400*scale_fft; i++ ){
 	  lcd_x = ((int16_t)(i/scale_fft) -200) * -1 + 200;//左右逆転(LCD都合
 	  lcd_y = (uint16_t)(Output[i]/maxValue*240);//FFT結果のMAX値を240に正規化

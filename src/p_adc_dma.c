@@ -174,11 +174,11 @@ void setup_pll0audio(uint32_t msel, uint32_t nsel, uint32_t psel)
 }
 
 ////////////////////////////////ADCコントロール////////////////////////////
-#define CAPTUREBUFFER_SIZE	0x4000 //0x10000(64kB)から0x4000(16kB=8kBx2)に変更
+#define CAPTUREBUFFER_SIZE	0x1000 //0x10000(64kB)から0x1000(4kB=2kBx2)に変更
 #define CAPTUREBUFFER0		((uint8_t*)0x20000000)//16kB AHB SRAMx2
 #define CAPTUREBUFFER1		((uint8_t*)0x20008000)//16kB AHB SRAMx2
 #define CAPTUREBUFFER_SIZEHALF	0x8000
-#define ADCCLK_MATCHVALUE	(500 - 1)  // サンプリング周期 = PLL0AUDIO / 500 = 79.872ksps
+#define ADCCLK_MATCHVALUE	(2000 - 1)  // サンプリング周期 = PLL0AUDIO / 2000 = 19.96ksps
 #define ADCCLK_DGECI 0
 #define FIFO_SIZE       8
 #define DMA_LLI_NUM    16//リンクリストの個数．最低４個くらい必要
@@ -323,7 +323,7 @@ void VADC_Init(void)
   LPC_VADC->POWER_CONTROL =
     (0 /*crs*/ << 0) |    /* CRS:          current setting for power versus speed programming */
     (1 << 4) |      /* DCINNEG:      0=no dc bias, 1=dc bias(0.5V) on vin_neg slide */
-    (1 << 10) |     /* DCINPOS:      0=no dc bias, 1=dc bias(0.5V) on vin_pos slide */
+    (0 << 10) |     /* DCINPOS:      0=no dc bias, 1=dc bias(0.5V) on vin_pos slide */
     (0 << 16) |     /* TWOS:         0=offset binary0x000~0xFFF, 1=two's complement */
     (1 << 17) |     /* POWER_SWITCH: 0=ADC is power gated, 1=ADC is active */
     (1 << 18);      /* BGAP_SWITCH:  0=ADC bandgap reg is power gated, 1=ADC bandgap is active */
