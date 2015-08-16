@@ -4,6 +4,7 @@
 #include <lpc43xx.h>
 
 #define CAPTUREBUFFER0		((uint8_t*)0x20000000)
+#define CAPTUREBUFFER1		((uint8_t*)0x20008000)
 
 void ADC_DMA_Init(void);
 void ADC_DMA_Exit(void);
